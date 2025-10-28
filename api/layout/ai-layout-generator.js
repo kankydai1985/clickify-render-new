@@ -15,41 +15,38 @@ export async function generateLayout({
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const prompt = `
-Ты — эксперт по дизайну рекламных баннеров 1080x1080 для Instagram/Facebook.
-Создай **полный HTML-код** баннера с CSS (inline styles). Используй:
+You are an expert in designing 1080x1080 Instagram/Facebook ad banners.
+Create full HTML code with inline CSS.
 
-- Фон: ${image_url ? 'изображение как фон (src="'но в base64)' : 'градиент'}
-- Логотип: ${logo_url ? 'в верхнем левом углу' : 'без логотипа'}
-- Текст: "${text}"
-- Цвет бренда: ${brand_color || '#FF6600'}
-- Бизнес: ${business_name || 'Clickify'}
-- Категория: ${category || 'услуги'}
-- Цель: ${goal || 'увеличить продажи'}
+Requirements:
+- Size: 1080x1080
+- Background: ${image_url ? 'use <img class="bg" src="BACKGROUND_IMAGE_URL"> with object-fit: cover' : 'gradient or solid color'}
+- Logo: ${logo_url ? 'top-left, white frame: <img class="logo" src="LOGO_URL">' : 'do not use'}
+- Brand color: ${brand_color || '#FF6600'}
+- Business name: "${business_name || 'Clickify'}"
+- Text: "${text}"
+- Category: ${category || 'general'}
+- Goal: ${goal || 'increase sales'}
 
-Требования:
-- Размер: 1080x1080
-- Адаптивно
-- Красивый шрифт (system-ui)
-- Тень, градиент, blur
-- Текст читаемый
-- Только <style> и <body>, без <script>
-- Замени BACKGROUND_IMAGE_URL на ${image_url || 'none'}
-- Замени LOGO_URL на ${logo_url || 'none'}
+Style: modern, clean, professional.
+Use flex/grid, backdrop-filter, text-shadow.
+Only <html>, <head>, <style>, <body>.
+No <script>, external links, !important, position: fixed.
 
-Верни **ТОЛЬКО HTML-строку**, без \`\`\`html.
-`;
+Return ONLY the HTML code.
+`.trim();
 
   try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let html = response.text();
 
-    // Очистка от ```html
+    // Убираем ```html
     html = html.replace(/```html/g, '').replace(/```/g, '').trim();
 
-    // Замена плейсхолдеров на base64 (Puppeteer увидит base64)
-    if (image_url) html = html.replace('BACKGROUND_IMAGE_URL', image_url);
-    if (logo_url) html = html.replace('LOGO_URL', logo_url);
+    // Заменяем плейсхолдеры на base64 (уже в preview.js)
+    html = html.replace('BACKGROUND_IMAGE_URL', image_url || '');
+    html = html.replace('LOGO_URL', logo_url || '');
 
     // Базовая валидация
     if (!html.includes('<html') || !html.includes('<style')) {
@@ -59,8 +56,8 @@ export async function generateLayout({
     return html;
   } catch (err) {
     console.error('Gemini error:', err.message);
-    
-    // Fallback — твой красивый шаблон
+
+    // Fallback HTML
     const bg = image_url ? `<img class="bg" src="${image_url}" />` : '';
     const logo = logo_url ? `<div class="logo-container"><img class="logo" src="${logo_url}" /></div>` : '';
 
