@@ -4,6 +4,36 @@ import chromium from '@sparticuz/chromium';
 import fetch from 'node-fetch';
 import { generateLayout } from './layout/ai-layout-generator.js';
 
+// === Универсальная функция запуска Puppeteer (работает на Vercel) ===
+const launchPuppeteer = async () => {
+  const executablePath = await chromium.executablePath();
+  console.log('Chromium path:', executablePath);
+
+  return await puppeteer.launch({
+    args: [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--single-process',
+      '--no-zygote',
+      '--disable-extensions',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-features=TranslateUI',
+      '--disable-ipc-flooding-protection'
+    ],
+    executablePath,
+    headless: true,
+    defaultViewport: { width: 1080, height: 1080, deviceScaleFactor: 1 },
+    env: { ...process.env, PUPPETEER_CACHE_DIR: '/tmp' }
+  });
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -57,30 +87,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'AI layout failed' });
   }
 
-  // === Puppeteer с фиксами для Vercel ===
+  // === Puppeteer: Основной рендер ===
   let browser;
   try {
     console.log('Запуск Puppeteer...');
-
-    const executablePath = await chromium.executablePath();
-    console.log('Chromium path:', executablePath);
-
-    browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
-        '--disable-extensions'
-      ],
-      executablePath,
-      headless: true,
-      defaultViewport: { width: 1080, height: 1080, deviceScaleFactor: 1 },
-      env: { ...process.env, PUPPETEER_CACHE_DIR: '/tmp' }
-    });
+    browser = await launchPuppeteer();
 
     const page = await browser.newPage();
 
@@ -105,16 +116,20 @@ export default async function handler(req, res) {
 
     res.setHeader('Content-Type', 'image/png');
     res.send(screenshot);
+    return;
+
   } catch (err) {
     console.error('Puppeteer error:', err.message);
     if (browser) await browser.close();
+  }
 
-    // === Fallback: старый шаблон ===
-    try {
-      const fallbackHtml = `<!DOCTYPE html>
+  // === Fallback: Простой шаблон (если Puppeteer упал) ===
+  try {
+    console.log('Используется fallback шаблон...');
+    const fallbackHtml = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{width:1080px;height:1080px;overflow:hidden;background:#000;font-family:system-ui,sans-serif}
+body{width:1080px;height:1080px;overflow:hidden;background:#000;font-family:system-ui,sans-serif;position:relative}
 .bg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
 .overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.1),rgba(0,0,0,0.7))}
 .logo-container{position:absolute;top:30px;left:30px;width:120px;height:120px;background:#fff;border-radius:16px;padding:8px;box-shadow:0 6px 20px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;border:3px solid #fff}
@@ -132,21 +147,18 @@ ${logoBase64 ? `<div class="logo-container"><img class="logo" src="${logoBase64}
 </div>
 </body></html>`;
 
-      const fallbackBrowser = await puppeteer.launch({
-        args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: true
-      });
-      const page = await fallbackBrowser.newPage();
-      await page.setContent(fallbackHtml);
-      const screenshot = await page.screenshot({ type: 'png' });
-      await fallbackBrowser.close();
+    const fallbackBrowser = await launchPuppeteer();
+    const page = await fallbackBrowser.newPage();
+    await page.setContent(fallbackHtml, { waitUntil: 'domcontentloaded' });
+    const screenshot = await page.screenshot({ type: 'png' });
+    await fallbackBrowser.close();
 
-      res.setHeader('Content-Type', 'image/png');
-      res.send(screenshot);
-    } catch (fallbackErr) {
-      res.status(500).json({ error: 'Render failed', details: err.message });
-    }
+    res.setHeader('Content-Type', 'image/png');
+    res.send(screenshot);
+
+  } catch (fallbackErr) {
+    console.error('Fallback failed:', fallbackErr.message);
+    res.status(500).json({ error: 'Render failed', details: fallbackErr.message });
   }
 }
 
