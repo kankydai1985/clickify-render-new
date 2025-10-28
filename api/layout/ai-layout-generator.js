@@ -12,7 +12,7 @@ export async function generateLayout({
   category,
   goal
 }) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const prompt = `
 You are an expert in designing 1080x1080 Instagram/Facebook ad banners.
