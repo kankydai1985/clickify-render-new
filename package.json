@@ -7,8 +7,6 @@
     "@google/generative-ai": "^0.7.0",
     "@sparticuz/chromium": "^127.0.0",
     "puppeteer-core": "^23.0.0",
-    "jsdom": "^24.1.0",
-    "isomorphic-dompurify": "^2.14.0",
     "node-fetch": "^3.3.2"
   }
 }
