@@ -1,6 +1,6 @@
 // api/preview.js
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import fetch from 'node-fetch';
 import { generateLayout } from './layout/ai-layout-generator.js';
 
