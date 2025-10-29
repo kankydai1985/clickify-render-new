@@ -1,6 +1,7 @@
 // layout/ai-layout-generator.js
 export async function generateLayout({ text, image_url, logo_url, brand_color, business_name }) {
-  const lines = text.split('\n').filter(l => l.trim());
+  // РАЗБИВАЕМ ТЕКСТ НА СТРОКИ
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
   const main = lines[0] || '';
   const sub = lines[1] || '';
   const hashtags = lines.slice(2).join(' ').trim();
@@ -26,6 +27,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         <h1 style="font-size:88px;margin:0;color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.9);">${main}</h1>
         <p style="font-size:44px;margin:20px 0;color:white;text-shadow:0 4px 14px rgba(0,0,0,0.8);">${business_name}</p>
       </div>
+      ${hashtags ? `<div style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:32px;color:#fff;">${hashtags}</div>` : ''}
     </div>`,
 
     // ШАБЛОН 3: Логотип снизу, текст сверху, рамка
@@ -35,6 +37,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         <p style="font-size:46px;margin:16px 0;color:white;">${sub || business_name}</p>
       </div>
       <img src="${logo_url}" style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:160px;height:160px;object-fit:contain;background:white;border-radius:25px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+      ${hashtags ? `<div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:30px;color:#fff;">${hashtags}</div>` : ''}
     </div>`,
 
     // ШАБЛОН 4: Диагональ, логотип в углу
@@ -44,7 +47,9 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
       <div style="position:absolute;top:120px;left:80px;max-width:50%;color:white;">
         <h1 style="font-size:86px;margin:0;line-height:1;color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.9);">${business_name}</h1>
         <p style="font-size:48px;margin:20px 0;font-weight:bold;text-shadow:0 4px 14px rgba(0,0,0,0.8);">${main}</p>
+        ${sub ? `<p style="font-size:36px;margin:8px 0;opacity:0.9;">${sub}</p>` : ''}
       </div>
+      ${hashtags ? `<div style="position:absolute;bottom:60px;left:60px;font-size:32px;color:#fff;background:rgba(0,0,0,0.4);padding:8px 20px;border-radius:30px;">${hashtags}</div>` : ''}
     </div>`,
 
     // ШАБЛОН 5: Центр, круглый текст
