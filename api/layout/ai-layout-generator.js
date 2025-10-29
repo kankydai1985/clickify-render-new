@@ -1,27 +1,21 @@
-// api/layout/ai-layout-generator.js
+// layout/ai-layout-generator.js
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-export async function generateLayout({
-  text,
-  image_url,
-  logo_url,
-  brand_color,
-  business_name
-}) {
+export async function generateLayout({ text, image_url, logo_url, brand_color, business_name }) {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const prompt = `
-Create a 1080x1080 Instagram banner HTML with inline CSS.
-Background: <img class="bg" src="${image_url}" style="position:absolute;width:100%;height:100%;object-fit:cover">
-Logo: <img class="logo" src="${logo_url}" style="position:absolute;top:30px;left:30px;width:120px;height:120px;object-fit:contain;background:white;border-radius:16px;padding:8px;border:3px solid white;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
-Text: "${text}"
-Brand color: ${brand_color || '#FF6600'}
-Business: "${business_name}"
+Создай HTML-баннер 1080x1080 для Instagram.
+Фон: <img class="bg" src="${image_url}" style="position:absolute;width:100%;height:100%;object-fit:cover">
+Логотип: <img class="logo" src="${logo_url}" style="position:absolute;top:30px;left:30px;width:140px;height:140px;object-fit:contain;background:white;border-radius:16px;padding:8px;border:3px solid white;box-shadow:0 6px 20px rgba(0,0,0,0.5)">
+Текст: "${text}"
+Цвет бренда: ${brand_color || '#FF3366'}
+Название: "${business_name}"
 
-Style: modern, clean, text-shadow, backdrop-filter.
-Return ONLY the <div id="banner"> with 1080x1080 size.
+Стиль: современный, чистый, с тенью у текста, градиентом, эффект глубины.
+Верни ТОЛЬКО <div id="banner"> 1080x1080 с inline CSS.
 `.trim();
 
   try {
