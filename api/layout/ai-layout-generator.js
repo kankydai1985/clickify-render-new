@@ -9,19 +9,23 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
   const prompt = `
 Ты — дизайнер Instagram-баннеров. Создай ТОЛЬКО ТЕКСТОВЫЙ КОНТЕНТ для баннера 1080x1080.
 
-Требования:
-- Только <h1>, <p>, <div> с текстом
-- Текст: "${text.replace(/\n/g, ' ')}"
+ОБЯЗАТЕЛЬНО ИСПОЛЬЗУЙ:
+- Цвет текста: ${brand_color || '#FF6600'}
 - Название: "${business_name}"
-- Цвет бренда: ${brand_color || '#FF6600'}
+- Акция: "${text.split('\n')[0]}"
 
-Стиль: большой заголовок, подзаголовок, тень, градиент.
-Верни ТОЛЬКО HTML-код внутри <div id="content">. Никаких <img>, background, url().
-Пример:
-<div id="content" style="text-align:center;padding:60px;color:white;">
-  <h1 style="font-size:72px;margin:0;text-shadow:0 4px 12px rgba(0,0,0,0.7);">Скидка 20%</h1>
-  <p style="font-size:48px;margin:20px 0;">Только до конца недели!</p>
+СТРУКТУРА (ВЕРНИ ТОЛЬКО ЭТО):
+<div id="content" style="text-align:center;color:${brand_color};text-shadow:0 4px 12px rgba(0,0,0,0.7);">
+  <h1 style="font-size:78px;margin:0;line-height:1.1;font-weight:900;">${business_name}</h1>
+  <p style="font-size:54px;margin:16px 0;font-weight:700;">${text.split('\n')[0]}</p>
+  <p style="font-size:36px;margin:8px 0;">${text.split('\n')[1] || ''}</p>
+  <p style="font-size:28px;color:#fff;margin-top:24px;">${text.split('#')[1]?.trim() || ''}</p>
 </div>
+
+ПРАВИЛА:
+- НИКАКИХ <img>, background, url()
+- НИКАКИХ \`\`\`html
+- ТОЛЬКО HTML выше
 `.trim();
 
   try {
@@ -29,13 +33,23 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     let content = (await result.response).text();
     content = content.replace(/```html/g, '').replace(/```/g, '').trim();
 
-    // ВСЁ ОСТАЛЬНОЕ — ВРУЧНУЮ
+    // ЕСЛИ НЕ СООТВЕТСТВУЕТ — ЗАПАСНОЙ
+    if (!content.includes('<h1') || !content.includes(brand_color)) {
+      content = `
+        <div id="content" style="text-align:center;color:${brand_color};text-shadow:0 4px 12px rgba(0,0,0,0.7);">
+          <h1 style="font-size:78px;margin:0;line-height:1.1;font-weight:900;">${business_name}</h1>
+          <p style="font-size:54px;margin:16px 0;font-weight:700;">${text.split('\n')[0]}</p>
+          <p style="font-size:36px;margin:8px 0;">${text.split('\n')[1] || ''}</p>
+          <p style="font-size:28px;color:#fff;margin-top:24px;">${text.split('#')[1]?.trim() || ''}</p>
+        </div>
+      `.trim();
+    }
+
     return `
       <div id="banner" style="
         width:1080px;height:1080px;position:relative;overflow:hidden;
         background-image:url('${image_url}');background-size:cover;background-position:center;
-        font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;
-        padding:80px;box-sizing:border-box;
+        font-family:'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;
       ">
         <!-- ЛОГОТИП -->
         <img src="${logo_url}" style="
@@ -45,7 +59,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         " alt="Logo">
 
         <!-- ТЕКСТ ОТ GEMINI -->
-        <div style="text-align:center;color:white;text-shadow:0 4px 16px rgba(0,0,0,0.8);max-width:85%;">
+        <div style="max-width:85%;">
           ${content}
         </div>
       </div>
@@ -53,24 +67,23 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
 
   } catch (err) {
     console.error('Gemini error:', err);
-    // ЗАПАСНОЙ — НИКОГДА НЕ ДОЛЖЕН СРАБОТАТЬ
     return `
       <div id="banner" style="
         width:1080px;height:1080px;position:relative;overflow:hidden;
         background-image:url('${image_url}');background-size:cover;background-position:center;
         display:flex;flex-direction:column;align-items:center;justify-content:center;
-        padding:80px;font-family:system-ui,sans-serif;color:white;text-align:center;
+        padding:80px;font-family:sans-serif;color:${brand_color};text-align:center;
       ">
         <img src="${logo_url}" style="
           position:absolute;top:30px;left:30px;width:140px;height:140px;
           object-fit:contain;background:white;border-radius:16px;padding:8px;
           box-shadow:0 6px 20px rgba(0,0,0,0.6);z-index:10;
         ">
-        <h1 style="font-size:72px;margin:0;line-height:1.1;text-shadow:0 4px 16px rgba(0,0,0,0.8);">
+        <h1 style="font-size:78px;margin:0;line-height:1.1;font-weight:900;text-shadow:0 4px 12px rgba(0,0,0,0.7);">
           ${business_name}
         </h1>
-        <p style="font-size:48px;margin:20px 0;text-shadow:0 4px 16px rgba(0,0,0,0.8);">
-          ${text.replace(/\n/g, '<br>')}
+        <p style="font-size:54px;margin:20px 0;font-weight:700;text-shadow:0 4px 12px rgba(0,0,0,0.7);">
+          ${text.split('\n')[0]}
         </p>
       </div>
     `.trim();
