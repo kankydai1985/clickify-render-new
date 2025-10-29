@@ -1,101 +1,66 @@
 // layout/ai-layout-generator.js
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 export async function generateLayout({ text, image_url, logo_url, brand_color, business_name }) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const lines = text.split('\n').filter(l => l.trim());
+  const main = lines[0] || '';
+  const sub = lines[1] || '';
+  const hashtags = lines.slice(2).join(' ').trim();
 
-  const prompt = `
-Ты — гениальный дизайнер Instagram-баннеров. Создай УНИКАЛЬНЫЙ, КРЕАТИВНЫЙ HTML 1080x1080.
+  // 5 УНИКАЛЬНЫХ ШАБЛОНОВ
+  const templates = [
 
-ОБЯЗАТЕЛЬНО:
-- Фон: background-image: url('${image_url}'); background-size: cover;
-- Логотип: <img src="${logo_url}" style="position:absolute;...">
-- Цвет бренда: ${brand_color} — используй в заголовке
-- Текст: "${text.replace(/\n/g, ' ')}"
-- Название: "${business_name}"
-
-ВЕРНИ ТОЛЬКО:
-<div id="banner" style="...">
-  <!-- Логотип -->
-  <img src="${logo_url}" style="...">
-  <!-- Текст -->
-  <div style="...">...</div>
-</div>
-
-ПРАВИЛА:
-1. НИКАКИХ \`\`\`html
-2. Уникальное расположение: не по центру!
-3. Градиенты, тени, анимация, повороты
-4. Логотип — в углу, с тенью
-5. Текст — с эффектом глубины
-
-СДЕЛАЙ ЧТО-ТО НЕОБЫЧНОЕ! НЕ КОПИРУЙ СТАНДАРТ!
-`.trim();
-
-  try {
-    const result = await model.generateContent(prompt);
-    let html = (await result.response).text();
-    html = html.replace(/```html/g, '').replace(/```/g, '').trim();
-
-    // ЖЁСТКАЯ ПРОВЕРКА
-    const hasBanner = /id=["']banner["']/.test(html);
-    const hasBg = new RegExp(image_url).test(html);
-    const hasLogo = new RegExp(logo_url).test(html);
-    const hasBrandColor = new RegExp(brand_color).test(html);
-
-    if (!hasBanner || !hasBg || !hasLogo || !hasBrandColor) {
-      throw new Error('Gemini ignored rules');
-    }
-
-    return html;
-
-  } catch (err) {
-    console.error('Gemini failed to follow rules:', err);
-    // КРАСИВЫЙ УНИКАЛЬНЫЙ FALLBACK
-    return `
-      <div id="banner" style="
-        width:1080px;height:1080px;position:relative;overflow:hidden;
-        background-image:url('${image_url}');background-size:cover;background-position:center;
-        font-family:'Arial Black',sans-serif;
-      ">
-        <!-- ЛОГОТИП С ПОВОРОТОМ -->
-        <img src="${logo_url}" style="
-          position:absolute;top:60px;left:-40px;width:220px;height:220px;
-          object-fit:contain;background:white;border-radius:30px;padding:16px;
-          border:6px solid white;transform:rotate(-12deg);
-          box-shadow:0 12px 40px rgba(0,0,0,0.6);z-index:10;
-        " alt="Logo">
-
-        <!-- ТЕКСТ С ГРАДИЕНТОМ -->
-        <div style="
-          position:absolute;top:50%;right:40px;transform:translateY(-50%);
-          text-align:right;max-width:55%;color:transparent;
-          background:linear-gradient(45deg, ${brand_color}, #ffffff);
-          -webkit-background-clip:text;background-clip:text;
-          text-shadow:0 4px 20px rgba(0,0,0,0.5);
-        ">
-          <h1 style="font-size:82px;margin:0;line-height:1;font-weight:900;">
-            ${business_name}
-          </h1>
-          <p style="font-size:48px;margin:12px 0 0;font-weight:700;">
-            ${text.split('\n')[0]}
-          </p>
-        </div>
-
-        <!-- ХЭШТЕГИ ВНИЗУ -->
-        <div style="
-          position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
-          font-size:36px;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,0.7);
-          background:rgba(0,0,0,0.4);padding:12px 32px;border-radius:50px;
-        ">
-          ${text.split('#').slice(1).join(' #')}
-        </div>
-
-        <!-- ГРАДИЕНТ -->
-        <div style="position:absolute;inset:0;background:radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5));pointer-events:none;"></div>
+    // ШАБЛОН 1: Логотип слева, текст справа
+    `<div id="banner" style="width:1080px;height:1080px;position:relative;background:url('${image_url}') center/cover;overflow:hidden;font-family:'Helvetica Neue',sans-serif;">
+      <img src="${logo_url}" style="position:absolute;top:60px;left:60px;width:200px;height:200px;object-fit:contain;background:white;border-radius:30px;padding:16px;border:6px solid white;box-shadow:0 12px 40px rgba(0,0,0,0.6);z-index:10;">
+      <div style="position:absolute;top:50%;right:60px;transform:translateY(-50%);text-align:right;max-width:55%;">
+        <h1 style="font-size:82px;margin:0;line-height:1;font-weight:900;color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.8);">${business_name}</h1>
+        <p style="font-size:50px;margin:16px 0;font-weight:700;color:white;text-shadow:0 4px 16px rgba(0,0,0,0.8);">${main}</p>
+        ${sub ? `<p style="font-size:38px;margin:8px 0;color:#fff;opacity:0.9;">${sub}</p>` : ''}
       </div>
-    `.trim();
-  }
+      ${hashtags ? `<div style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-size:34px;color:#fff;background:rgba(0,0,0,0.5);padding:10px 30px;border-radius:50px;">${hashtags}</div>` : ''}
+    </div>`,
+
+    // ШАБЛОН 2: Логотип сверху, текст снизу, градиент
+    `<div id="banner" style="width:1080px;height:1080px;position:relative;background:linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url('${image_url}') center/cover;font-family:'Arial Black',sans-serif;">
+      <img src="${logo_url}" style="position:absolute;top:40px;left:50%;transform:translateX(-50%);width:180px;height:180px;object-fit:contain;background:white;border-radius:50%;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,0.7);z-index:10;">
+      <div style="position:absolute;bottom:100px;left:50%;transform:translateX(-50%);text-align:center;max-width:90%;">
+        <h1 style="font-size:88px;margin:0;color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.9);">${main}</h1>
+        <p style="font-size:44px;margin:20px 0;color:white;text-shadow:0 4px 14px rgba(0,0,0,0.8);">${business_name}</p>
+      </div>
+    </div>`,
+
+    // ШАБЛОН 3: Логотип снизу, текст сверху, рамка
+    `<div id="banner" style="width:1080px;height:1080px;position:relative;background:url('${image_url}') center/cover;overflow:hidden;font-family:system-ui,sans-serif;">
+      <div style="position:absolute;top:80px;left:50%;transform:translateX(-50%);text-align:center;max-width:80%;background:rgba(255,255,255,0.15);padding:32px;border-radius:20px;border:4px solid rgba(255,255,255,0.3);backdrop-filter:blur(4px);">
+        <h1 style="font-size:78px;margin:0;color:${brand_color};text-shadow:0 4px 16px rgba(0,0,0,0.7);">${main}</h1>
+        <p style="font-size:46px;margin:16px 0;color:white;">${sub || business_name}</p>
+      </div>
+      <img src="${logo_url}" style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:160px;height:160px;object-fit:contain;background:white;border-radius:25px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,0.6);">
+    </div>`,
+
+    // ШАБЛОН 4: Диагональ, логотип в углу
+    `<div id="banner" style="width:1080px;height:1080px;position:relative;background:url('${image_url}') center/cover;overflow:hidden;font-family:'Impact',sans-serif;">
+      <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(45deg, transparent 48%, rgba(255,102,0,0.2) 50%, transparent 52%);"></div>
+      <img src="${logo_url}" style="position:absolute;bottom:60px;right:60px;width:190px;height:190px;object-fit:contain;background:white;border-radius:30px;padding:16px;transform:rotate(8deg);box-shadow:0 12px 40px rgba(0,0,0,0.7);z-index:10;">
+      <div style="position:absolute;top:120px;left:80px;max-width:50%;color:white;">
+        <h1 style="font-size:86px;margin:0;line-height:1;color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.9);">${business_name}</h1>
+        <p style="font-size:48px;margin:20px 0;font-weight:bold;text-shadow:0 4px 14px rgba(0,0,0,0.8);">${main}</p>
+      </div>
+    </div>`,
+
+    // ШАБЛОН 5: Центр, круглый текст
+    `<div id="banner" style="width:1080px;height:1080px;position:relative;background:url('${image_url}') center/cover;overflow:hidden;font-family:'Montserrat',sans-serif;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at center, rgba(0,0,0,0.1), rgba(0,0,0,0.6));"></div>
+      <img src="${logo_url}" style="position:absolute;top:60px;left:60px;width:150px;height:150px;object-fit:contain;background:white;border-radius:50%;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);z-index:10;">
+      <div style="text-align:center;color:white;max-width:80%;z-index:5;">
+        <h1 style="font-size:92px;margin:0;line-height:1;font-weight:900;color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.9);">${main}</h1>
+        <p style="font-size:50px;margin:24px 0;font-weight:700;text-shadow:0 4px 16px rgba(0,0,0,0.8);">${business_name}</p>
+        ${hashtags ? `<p style="font-size:32px;margin:0;opacity:0.9;">${hashtags}</p>` : ''}
+      </div>
+    </div>`
+
+  ];
+
+  // СЛУЧАЙНЫЙ ШАБЛОН
+  const randomIndex = Math.floor(Math.random() * templates.length);
+  return templates[randomIndex];
 }
