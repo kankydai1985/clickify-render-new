@@ -1,7 +1,7 @@
 // layout/ai-layout-generator.js
 export async function generateLayout({ text, image_url, logo_url, brand_color, business_name }) {
-  // РАЗБИВАЕМ ТОЛЬКО ПО \\n (ЭКРАНИРОВАННЫЙ ПЕРЕНОС)
-  const lines = text.split('\\n').map(l => l.trim()).filter(l => l);
+  // РАЗБИВАЕМ ПО ЛЮБОМУ ПЕРЕНОСУ: \n, \\n, или реальный перенос
+  const lines = text.split(/\\n|\n/).map(l => l.trim()).filter(l => l);
   const main = lines[0] || '';
   const sub = lines[1] || '';
   const hashtags = lines.slice(2).join(' ').trim();
