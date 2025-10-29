@@ -6,18 +6,22 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 export async function generateLayout({ text, image_url, logo_url, brand_color, business_name }) {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-  // ПРОМПТ — ТОЛЬКО ТЕКСТ. НИКАКИХ URL!
   const prompt = `
-Создай HTML-баннер 1080x1080 для Instagram.
+Ты — дизайнер Instagram-баннеров. Создай ТОЛЬКО ТЕКСТОВЫЙ КОНТЕНТ для баннера 1080x1080.
 
 Требования:
-- Только <div>, <h1>, <p> для текста
+- Только <h1>, <p>, <div> с текстом
 - Текст: "${text.replace(/\n/g, ' ')}"
 - Название: "${business_name}"
 - Цвет бренда: ${brand_color || '#FF6600'}
 
-Стиль: большой жирный заголовок, тень, градиент, современно.
-Верни ТОЛЬКО <div id="content"> с inline CSS. Никаких <img>, url(), background-image.
+Стиль: большой заголовок, подзаголовок, тень, градиент.
+Верни ТОЛЬКО HTML-код внутри <div id="content">. Никаких <img>, background, url().
+Пример:
+<div id="content" style="text-align:center;padding:60px;color:white;">
+  <h1 style="font-size:72px;margin:0;text-shadow:0 4px 12px rgba(0,0,0,0.7);">Скидка 20%</h1>
+  <p style="font-size:48px;margin:20px 0;">Только до конца недели!</p>
+</div>
 `.trim();
 
   try {
@@ -30,8 +34,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
       <div id="banner" style="
         width:1080px;height:1080px;position:relative;overflow:hidden;
         background-image:url('${image_url}');background-size:cover;background-position:center;
-        font-family:system-ui,sans-serif;color:white;text-align:center;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;
         padding:80px;box-sizing:border-box;
       ">
         <!-- ЛОГОТИП -->
@@ -42,7 +45,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         " alt="Logo">
 
         <!-- ТЕКСТ ОТ GEMINI -->
-        <div style="max-width:85%;text-shadow:0 4px 16px rgba(0,0,0,0.8);">
+        <div style="text-align:center;color:white;text-shadow:0 4px 16px rgba(0,0,0,0.8);max-width:85%;">
           ${content}
         </div>
       </div>
@@ -50,7 +53,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
 
   } catch (err) {
     console.error('Gemini error:', err);
-    // ЗАПАСНОЙ
+    // ЗАПАСНОЙ — НИКОГДА НЕ ДОЛЖЕН СРАБОТАТЬ
     return `
       <div id="banner" style="
         width:1080px;height:1080px;position:relative;overflow:hidden;
