@@ -7,32 +7,31 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const prompt = `
-Ты — креативный дизайнер Instagram-баннеров. Создай УНИКАЛЬНЫЙ HTML-дизайн 1080x1080.
+Ты — гениальный дизайнер Instagram-баннеров. Создай УНИКАЛЬНЫЙ, КРЕАТИВНЫЙ HTML 1080x1080.
 
-ИСПОЛЬЗУЙ:
+ОБЯЗАТЕЛЬНО:
 - Фон: background-image: url('${image_url}'); background-size: cover;
-- Логотип: <img src="${logo_url}" ...> (в углу)
+- Логотип: <img src="${logo_url}" style="position:absolute;...">
+- Цвет бренда: ${brand_color} — используй в заголовке
 - Текст: "${text.replace(/\n/g, ' ')}"
-- Цвет бренда: ${brand_color}
 - Название: "${business_name}"
 
-ПРАВИЛА:
-1. Верни ТОЛЬКО <div id="banner">...</div>
-2. Используй inline CSS
-3. Никаких \`\`\`html, \`\`\`
-4. Уникальный стиль: градиенты, тени, анимация, расположение
-5. Логотип и фон — обязательно
-6. Текст — с тенью, читаемый
-
-Пример (НЕ КОПИРУЙ):
+ВЕРНИ ТОЛЬКО:
 <div id="banner" style="...">
-  <img src="${logo_url}" style="position:absolute;top:40px;left:40px;width:160px;">
-  <div style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);color:${brand_color};font-size:72px;">
-    Скидка 20%!
-  </div>
+  <!-- Логотип -->
+  <img src="${logo_url}" style="...">
+  <!-- Текст -->
+  <div style="...">...</div>
 </div>
 
-СДЕЛАЙ НЕЧТО КРЕАТИВНОЕ!
+ПРАВИЛА:
+1. НИКАКИХ \`\`\`html
+2. Уникальное расположение: не по центру!
+3. Градиенты, тени, анимация, повороты
+4. Логотип — в углу, с тенью
+5. Текст — с эффектом глубины
+
+СДЕЛАЙ ЧТО-ТО НЕОБЫЧНОЕ! НЕ КОПИРУЙ СТАНДАРТ!
 `.trim();
 
   try {
@@ -40,57 +39,62 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     let html = (await result.response).text();
     html = html.replace(/```html/g, '').replace(/```/g, '').trim();
 
-    // ПРОВЕРКА: ДОЛЖЕН БЫТЬ #banner, image_url, logo_url
-    if (!html.includes('id="banner"') || !html.includes(image_url) || !html.includes(logo_url)) {
-      throw new Error('Invalid structure');
+    // ЖЁСТКАЯ ПРОВЕРКА
+    const hasBanner = /id=["']banner["']/.test(html);
+    const hasBg = new RegExp(image_url).test(html);
+    const hasLogo = new RegExp(logo_url).test(html);
+    const hasBrandColor = new RegExp(brand_color).test(html);
+
+    if (!hasBanner || !hasBg || !hasLogo || !hasBrandColor) {
+      throw new Error('Gemini ignored rules');
     }
 
     return html;
 
   } catch (err) {
-    console.error('Gemini design error:', err);
-    // ЗАПАСНОЙ — КРАСИВЫЙ, НО СТАНДАРТНЫЙ
+    console.error('Gemini failed to follow rules:', err);
+    // КРАСИВЫЙ УНИКАЛЬНЫЙ FALLBACK
     return `
       <div id="banner" style="
         width:1080px;height:1080px;position:relative;overflow:hidden;
         background-image:url('${image_url}');background-size:cover;background-position:center;
-        font-family:'Helvetica Neue',sans-serif;
+        font-family:'Arial Black',sans-serif;
       ">
+        <!-- ЛОГОТИП С ПОВОРОТОМ -->
         <img src="${logo_url}" style="
-          position:absolute;top:40px;left:40px;width:160px;height:160px;
-          object-fit:contain;background:white;border-radius:20px;padding:12px;
-          border:4px solid white;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:10;
+          position:absolute;top:60px;left:-40px;width:220px;height:220px;
+          object-fit:contain;background:white;border-radius:30px;padding:16px;
+          border:6px solid white;transform:rotate(-12deg);
+          box-shadow:0 12px 40px rgba(0,0,0,0.6);z-index:10;
         " alt="Logo">
 
+        <!-- ТЕКСТ С ГРАДИЕНТОМ -->
         <div style="
-          position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
-          text-align:center;color:white;max-width:90%;
+          position:absolute;top:50%;right:40px;transform:translateY(-50%);
+          text-align:right;max-width:55%;color:transparent;
+          background:linear-gradient(45deg, ${brand_color}, #ffffff);
+          -webkit-background-clip:text;background-clip:text;
+          text-shadow:0 4px 20px rgba(0,0,0,0.5);
         ">
-          <h1 style="
-            font-size:78px;font-weight:900;margin:0;line-height:1.1;
-            color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.8);
-          ">
+          <h1 style="font-size:82px;margin:0;line-height:1;font-weight:900;">
             ${business_name}
           </h1>
-          <p style="
-            font-size:48px;margin:16px 0 0;font-weight:700;
-            text-shadow:0 4px 14px rgba(0,0,0,0.8);
-          ">
+          <p style="font-size:48px;margin:12px 0 0;font-weight:700;">
             ${text.split('\n')[0]}
-          </p>
-          <p style="
-            font-size:32px;margin:8px 0 0;opacity:0.9;
-            text-shadow:0 3px 10px rgba(0,0,0,0.7);
-          ">
-            ${text.split('\n').slice(1).join(' ')}
           </p>
         </div>
 
+        <!-- ХЭШТЕГИ ВНИЗУ -->
         <div style="
-          position:absolute;inset:0;
-          background:linear-gradient(135deg, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
-          pointer-events:none;
-        "></div>
+          position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+          font-size:36px;color:#fff;text-shadow:0 3px 12px rgba(0,0,0,0.7);
+          background:rgba(0,0,0,0.4);padding:12px 32px;border-radius:50px;
+        ">
+          ${text.split('#').slice(1).join(' #')}
+        </div>
+
+        <!-- ГРАДИЕНТ -->
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.5));pointer-events:none;"></div>
       </div>
     `.trim();
   }
