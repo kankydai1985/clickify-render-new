@@ -7,84 +7,90 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const prompt = `
-Ты — дизайнер Instagram-баннеров. Создай ТОЛЬКО ТЕКСТОВЫЙ КОНТЕНТ для баннера 1080x1080.
+Ты — креативный дизайнер Instagram-баннеров. Создай УНИКАЛЬНЫЙ HTML-дизайн 1080x1080.
 
-ОБЯЗАТЕЛЬНО ИСПОЛЬЗУЙ:
-- Цвет текста: ${brand_color || '#FF6600'}
+ИСПОЛЬЗУЙ:
+- Фон: background-image: url('${image_url}'); background-size: cover;
+- Логотип: <img src="${logo_url}" ...> (в углу)
+- Текст: "${text.replace(/\n/g, ' ')}"
+- Цвет бренда: ${brand_color}
 - Название: "${business_name}"
-- Акция: "${text.split('\n')[0]}"
-
-СТРУКТУРА (ВЕРНИ ТОЛЬКО ЭТО):
-<div id="content" style="text-align:center;color:${brand_color};text-shadow:0 4px 12px rgba(0,0,0,0.7);">
-  <h1 style="font-size:78px;margin:0;line-height:1.1;font-weight:900;">${business_name}</h1>
-  <p style="font-size:54px;margin:16px 0;font-weight:700;">${text.split('\n')[0]}</p>
-  <p style="font-size:36px;margin:8px 0;">${text.split('\n')[1] || ''}</p>
-  <p style="font-size:28px;color:#fff;margin-top:24px;">${text.split('#')[1]?.trim() || ''}</p>
-</div>
 
 ПРАВИЛА:
-- НИКАКИХ <img>, background, url()
-- НИКАКИХ \`\`\`html
-- ТОЛЬКО HTML выше
+1. Верни ТОЛЬКО <div id="banner">...</div>
+2. Используй inline CSS
+3. Никаких \`\`\`html, \`\`\`
+4. Уникальный стиль: градиенты, тени, анимация, расположение
+5. Логотип и фон — обязательно
+6. Текст — с тенью, читаемый
+
+Пример (НЕ КОПИРУЙ):
+<div id="banner" style="...">
+  <img src="${logo_url}" style="position:absolute;top:40px;left:40px;width:160px;">
+  <div style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);color:${brand_color};font-size:72px;">
+    Скидка 20%!
+  </div>
+</div>
+
+СДЕЛАЙ НЕЧТО КРЕАТИВНОЕ!
 `.trim();
 
   try {
     const result = await model.generateContent(prompt);
-    let content = (await result.response).text();
-    content = content.replace(/```html/g, '').replace(/```/g, '').trim();
+    let html = (await result.response).text();
+    html = html.replace(/```html/g, '').replace(/```/g, '').trim();
 
-    // ЕСЛИ НЕ СООТВЕТСТВУЕТ — ЗАПАСНОЙ
-    if (!content.includes('<h1') || !content.includes(brand_color)) {
-      content = `
-        <div id="content" style="text-align:center;color:${brand_color};text-shadow:0 4px 12px rgba(0,0,0,0.7);">
-          <h1 style="font-size:78px;margin:0;line-height:1.1;font-weight:900;">${business_name}</h1>
-          <p style="font-size:54px;margin:16px 0;font-weight:700;">${text.split('\n')[0]}</p>
-          <p style="font-size:36px;margin:8px 0;">${text.split('\n')[1] || ''}</p>
-          <p style="font-size:28px;color:#fff;margin-top:24px;">${text.split('#')[1]?.trim() || ''}</p>
-        </div>
-      `.trim();
+    // ПРОВЕРКА: ДОЛЖЕН БЫТЬ #banner, image_url, logo_url
+    if (!html.includes('id="banner"') || !html.includes(image_url) || !html.includes(logo_url)) {
+      throw new Error('Invalid structure');
     }
 
-    return `
-      <div id="banner" style="
-        width:1080px;height:1080px;position:relative;overflow:hidden;
-        background-image:url('${image_url}');background-size:cover;background-position:center;
-        font-family:'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;
-      ">
-        <!-- ЛОГОТИП -->
-        <img src="${logo_url}" style="
-          position:absolute;top:30px;left:30px;width:140px;height:140px;
-          object-fit:contain;background:white;border-radius:16px;padding:8px;
-          border:3px solid white;box-shadow:0 6px 20px rgba(0,0,0,0.6);z-index:10;
-        " alt="Logo">
-
-        <!-- ТЕКСТ ОТ GEMINI -->
-        <div style="max-width:85%;">
-          ${content}
-        </div>
-      </div>
-    `.trim();
+    return html;
 
   } catch (err) {
-    console.error('Gemini error:', err);
+    console.error('Gemini design error:', err);
+    // ЗАПАСНОЙ — КРАСИВЫЙ, НО СТАНДАРТНЫЙ
     return `
       <div id="banner" style="
         width:1080px;height:1080px;position:relative;overflow:hidden;
         background-image:url('${image_url}');background-size:cover;background-position:center;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;
-        padding:80px;font-family:sans-serif;color:${brand_color};text-align:center;
+        font-family:'Helvetica Neue',sans-serif;
       ">
         <img src="${logo_url}" style="
-          position:absolute;top:30px;left:30px;width:140px;height:140px;
-          object-fit:contain;background:white;border-radius:16px;padding:8px;
-          box-shadow:0 6px 20px rgba(0,0,0,0.6);z-index:10;
+          position:absolute;top:40px;left:40px;width:160px;height:160px;
+          object-fit:contain;background:white;border-radius:20px;padding:12px;
+          border:4px solid white;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:10;
+        " alt="Logo">
+
+        <div style="
+          position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+          text-align:center;color:white;max-width:90%;
         ">
-        <h1 style="font-size:78px;margin:0;line-height:1.1;font-weight:900;text-shadow:0 4px 12px rgba(0,0,0,0.7);">
-          ${business_name}
-        </h1>
-        <p style="font-size:54px;margin:20px 0;font-weight:700;text-shadow:0 4px 12px rgba(0,0,0,0.7);">
-          ${text.split('\n')[0]}
-        </p>
+          <h1 style="
+            font-size:78px;font-weight:900;margin:0;line-height:1.1;
+            color:${brand_color};text-shadow:0 6px 20px rgba(0,0,0,0.8);
+          ">
+            ${business_name}
+          </h1>
+          <p style="
+            font-size:48px;margin:16px 0 0;font-weight:700;
+            text-shadow:0 4px 14px rgba(0,0,0,0.8);
+          ">
+            ${text.split('\n')[0]}
+          </p>
+          <p style="
+            font-size:32px;margin:8px 0 0;opacity:0.9;
+            text-shadow:0 3px 10px rgba(0,0,0,0.7);
+          ">
+            ${text.split('\n').slice(1).join(' ')}
+          </p>
+        </div>
+
+        <div style="
+          position:absolute;inset:0;
+          background:linear-gradient(135deg, rgba(0,0,0,0.1), rgba(0,0,0,0.6));
+          pointer-events:none;
+        "></div>
       </div>
     `.trim();
   }
