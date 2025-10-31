@@ -10,8 +10,8 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     const hashtags = lines.slice(2).join(' ').trim();
 
     // ✅ ИСПРАВЛЕНИЕ: Правильные цвета для контраста
-    const textColor = getContrastColor(designTokens.colors.background);
-    const subtitleColor = designTokens.colors.text === '#000000' ? '#FFFFFF' : designTokens.colors.text;
+    const textColor = '#FFFFFF'; // Всегда белый текст для лучшей читаемости на изображениях
+    const subtitleColor = '#FFFFFF';
 
     // Шаблон с использованием токенов
     const template = `
@@ -20,7 +20,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         position:relative;
         background:url('${image_url}') center/cover;
         font-family:${designTokens.typography.fontFamily};
-        color:${textColor};  // ← ИСПРАВЛЕНО
+        color:${textColor};
         overflow:hidden;
     ">
         <img src="${logo_url}" style="
@@ -46,15 +46,15 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
             <h1 style="
                 font-size:72px;
                 margin:0;
-                color:${designTokens.colors.primary};  // ← Брендовый цвет для заголовка
+                color:${designTokens.colors.primary};
                 text-shadow:0 4px 16px rgba(0,0,0,0.8);
                 font-weight:${designTokens.typography.weight};
             ">${business_name}</h1>
             <p style="
                 font-size:42px;
                 margin:${designTokens.spacing.sm} 0;
-                color:${textColor};  // ← ИСПРАВЛЕНО
-                text-shadow:0 4px 16px rgba(0,0,0,0.8);  // ← Добавил тень для читаемости
+                color:${textColor};
+                text-shadow:0 4px 16px rgba(0,0,0,0.8);
                 font-weight:bold;
             ">${main}</p>
             ${sub ? `<p style="font-size:32px;margin:8px 0;opacity:0.9;color:${textColor};text-shadow:0 2px 8px rgba(0,0,0,0.8);">${sub}</p>` : ''}
@@ -65,30 +65,13 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     return template;
 }
 
-// ✅ НОВАЯ ФУНКЦИЯ: Определение контрастного цвета
-function getContrastColor(backgroundColor) {
-    // Для темных фонов - белый текст, для светлых - черный
-    if (backgroundColor && backgroundColor.startsWith('#')) {
-        // Упрощенная проверка яркости
-        const hex = backgroundColor.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        
-        // Формула яркости
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-        return brightness > 128 ? '#000000' : '#FFFFFF';
-    }
-    return '#FFFFFF'; // По умолчанию белый
-}
-
 async function generateBasicTokens(brandColor, businessName) {
     return {
         colors: {
             primary: brandColor || '#007AFF',
             secondary: '#FFFFFF', 
-            background: '#FFFFFF',
-            text: '#000000',
+            background: '#1a1a1a',
+            text: '#FFFFFF',
             accent: brandColor || '#007AFF'
         },
         typography: {
