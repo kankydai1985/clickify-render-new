@@ -79,3 +79,8 @@ async function generateBasicTokens(brandColor, businessName) {
             xl: '48px'
         },
         effects: {
+            shadow: '0 4px 20px rgba(0,0,0,0.15)',
+            borderRadius: '12px'
+        }
+    };
+}
