@@ -9,6 +9,10 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     const sub = lines[1] || '';
     const hashtags = lines.slice(2).join(' ').trim();
 
+    // ✅ ИСПРАВЛЕНИЕ: Правильные цвета для контраста
+    const textColor = getContrastColor(designTokens.colors.background);
+    const subtitleColor = designTokens.colors.text === '#000000' ? '#FFFFFF' : designTokens.colors.text;
+
     // Шаблон с использованием токенов
     const template = `
     <div id="banner" style="
@@ -16,7 +20,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         position:relative;
         background:url('${image_url}') center/cover;
         font-family:${designTokens.typography.fontFamily};
-        color:${designTokens.colors.text};
+        color:${textColor};  // ← ИСПРАВЛЕНО
         overflow:hidden;
     ">
         <img src="${logo_url}" style="
@@ -42,22 +46,40 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
             <h1 style="
                 font-size:72px;
                 margin:0;
-                color:${designTokens.colors.primary};
+                color:${designTokens.colors.primary};  // ← Брендовый цвет для заголовка
                 text-shadow:0 4px 16px rgba(0,0,0,0.8);
                 font-weight:${designTokens.typography.weight};
             ">${business_name}</h1>
             <p style="
                 font-size:42px;
                 margin:${designTokens.spacing.sm} 0;
-                color:${designTokens.colors.text};
+                color:${textColor};  // ← ИСПРАВЛЕНО
+                text-shadow:0 4px 16px rgba(0,0,0,0.8);  // ← Добавил тень для читаемости
                 font-weight:bold;
             ">${main}</p>
-            ${sub ? `<p style="font-size:32px;margin:8px 0;opacity:0.9;color:${designTokens.colors.text};">${sub}</p>` : ''}
+            ${sub ? `<p style="font-size:32px;margin:8px 0;opacity:0.9;color:${textColor};text-shadow:0 2px 8px rgba(0,0,0,0.8);">${sub}</p>` : ''}
         </div>
-        ${hashtags ? `<div style="position:absolute;bottom:${designTokens.spacing.lg};left:50%;transform:translateX(-50%);font-size:24px;color:${designTokens.colors.text};background:rgba(255,255,255,0.8);padding:8px 20px;border-radius:20px;">${hashtags}</div>` : ''}
+        ${hashtags ? `<div style="position:absolute;bottom:${designTokens.spacing.lg};left:50%;transform:translateX(-50%);font-size:24px;color:${textColor};background:rgba(0,0,0,0.6);padding:8px 20px;border-radius:20px;text-shadow:0 2px 4px rgba(0,0,0,0.8);">${hashtags}</div>` : ''}
     </div>`;
     
     return template;
+}
+
+// ✅ НОВАЯ ФУНКЦИЯ: Определение контрастного цвета
+function getContrastColor(backgroundColor) {
+    // Для темных фонов - белый текст, для светлых - черный
+    if (backgroundColor && backgroundColor.startsWith('#')) {
+        // Упрощенная проверка яркости
+        const hex = backgroundColor.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        
+        // Формула яркости
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness > 128 ? '#000000' : '#FFFFFF';
+    }
+    return '#FFFFFF'; // По умолчанию белый
 }
 
 async function generateBasicTokens(brandColor, businessName) {
