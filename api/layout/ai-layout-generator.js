@@ -10,7 +10,7 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     const hashtags = lines.slice(2).join(' ').trim();
 
     // Шаблон с использованием токенов
-    return `
+    const template = `
     <div id="banner" style="
         width:1080px;height:1080px;
         position:relative;
@@ -56,6 +56,8 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
         </div>
         ${hashtags ? `<div style="position:absolute;bottom:${designTokens.spacing.lg};left:50%;transform:translateX(-50%);font-size:24px;color:${designTokens.colors.text};background:rgba(255,255,255,0.8);padding:8px 20px;border-radius:20px;">${hashtags}</div>` : ''}
     </div>`;
+    
+    return template;
 }
 
 async function generateBasicTokens(brandColor, businessName) {
