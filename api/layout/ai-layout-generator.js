@@ -1,17 +1,17 @@
 // layout/ai-layout-generator.js
-export async function generateLayout({ text, image_url, logo_url, brand_color, business_name, tokens }) {
+export async function generateLayout({ text, image_url, logo_url, brand_color, business_name, tokens, style_choice }) {
     
     // Используем токены если они есть, иначе генерируем базовые
-    const designTokens = tokens || await generateBasicTokens(brand_color, business_name);
+    const designTokens = tokens || await generateBasicTokens(brand_color, business_name, style_choice);
     
     const lines = text.split(/\\n|\n/).map(l => l.trim()).filter(l => l);
     const main = lines[0] || '';
     const sub = lines[1] || '';
     const hashtags = lines.slice(2).join(' ').trim();
 
-    // ✅ ИСПРАВЛЕНИЕ: Правильные цвета для контраста
-    const textColor = '#FFFFFF'; // Всегда белый текст для лучшей читаемости на изображениях
-    const subtitleColor = '#FFFFFF';
+    // Используем цвета из токенов для правильного контраста
+    const textColor = designTokens.colors.text || '#FFFFFF';
+    const backgroundColor = designTokens.colors.background || '#1a1a1a';
 
     // Шаблон с использованием токенов
     const template = `
@@ -65,7 +65,8 @@ export async function generateLayout({ text, image_url, logo_url, brand_color, b
     return template;
 }
 
-async function generateBasicTokens(brandColor, businessName) {
+async function generateBasicTokens(brandColor, businessName, styleChoice = 'auto') {
+    // Базовая генерация токенов с учетом стиля
     return {
         colors: {
             primary: brandColor || '#007AFF',
@@ -88,6 +89,7 @@ async function generateBasicTokens(brandColor, businessName) {
         effects: {
             shadow: '0 4px 20px rgba(0,0,0,0.15)',
             borderRadius: '12px'
-        }
+        },
+        style: styleChoice
     };
 }
